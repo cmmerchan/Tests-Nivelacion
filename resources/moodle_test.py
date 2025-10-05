@@ -122,8 +122,13 @@ class MoodleTest:
                 # Texto visible de la respuesta
                 option_info = label_element.text.strip()
                 option_split = option_info.split("\n")
-                if len(option_split) > 1:
+                if len(option_split) ==2:
                     variable, option_text = option_info.split("\n") #TODO igual ponerlo en un try catch porque no sabemos como estara redactada la opcion
+                    # print(option_text)
+                    return option_text
+                elif len(option_split)>2:
+                    option_text = "".join(option_split[1::])
+                    # print(option_text)
                     return option_text
                 else:
                     print("⚠️ La opción no tiene el formato esperado.")
@@ -147,8 +152,10 @@ class MoodleTest:
     def get_question(self) -> str:
         try:
             question_element = self.functions.find_all_elements_starts_with("div[id^='question-'] .qtext")
+            print(question_element)
             return question_element[0].text.strip() if question_element else ""
         except Exception as e:
+            print(e)
             return ""
         
 
