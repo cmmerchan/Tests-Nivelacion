@@ -59,7 +59,7 @@ class MoodleTest:
                     self.do_multichoice_question(questions[0])          
                     
             except Exception as e:
-                self.logger.error(f"Error al procesar la pregunta:")
+                self.logger.error(f"Error al procesar la pregunta:{e}")
         
         else:
             #Caso raro, varias preguntas en la página
@@ -72,36 +72,15 @@ class MoodleTest:
 
             question = Question()
             question.question = web_element.find_element(By.CLASS_NAME, "qtext").text
-            if question.question != "":
-                question.type = "multichoice"
+            question.type = "multichoice"
+            flag_answer_question = False
+
+            if question.question != "":               
+                db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
                 
-                # print(f"Pregunta: {question.question}")
-
-                # try:
-                #     img_element = web_element.find_element(By.CLASS_NAME, "img-fluid")
-                #     img_src = img_element.get_attribute("src")
-                #     question.img_source_question.append(img_src)
-                #     print(f"Imagen encontrada en la pregunta: {img_src}")
-                #     # Extraer cookies de la sesión Selenium
-                #     cookies = self.driver.get_cookies()
-                #     s = requests.Session()
-                #     for cookie in cookies:
-                #         s.cookies.set(cookie['name'], cookie['value'])
-
-                #     # Descargar la imagen usando la sesión autenticada
-                #     url = "https://aulanivelacion.unemi.edu.ec/pluginfile.php/227151/question/questiontext/510815/3/733925/Captura%20de%20pantalla%202024-04-16%20a%20la%28s%29%204.59.28%E2%80%AFp.%C2%A0m..png"
-                #     resp = s.get(url)
-
-                #     if resp.status_code == 200:
-                #         img_bytes = resp.content
-                #         img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-                #         print("✅ Imagen en Base64 lista:")
-                #         print(img_b64[:200], "...")  # solo mostramos un pedazo
-                #     else:
-                #         print("⚠️ Error al obtener la imagen:", resp.status_code)
-                # except Exception as e:
-                #     self.logger.info("No se encontró imagen en la pregunta.")
-                    
+                if db_question != None:
+                    flag_answer_question = True      
+                
 
                 answer_block = web_element.find_element(By.CLASS_NAME, "answer")
                 options = answer_block.find_elements(By.CSS_SELECTOR, "div[class^='r']")
@@ -112,7 +91,11 @@ class MoodleTest:
                     # input_element.click() #Si vale para seleccionar la respuesta
                     option_text = self.get_text_from_option_element(option, "input[type='radio']")
                     question.options.append(option_text)
-                    
+                    if flag_answer_question:
+                        if option_text == db_question['answers'][0]:
+                            input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
+                            input_element.click()
+                            flag_answer_question = False 
                 
                 while True:  
                     answer_text = self.get_text_from_option_element(web_element, "input[type='radio']:checked")
@@ -157,7 +140,6 @@ class MoodleTest:
             self.logger.error(f"Error al obtener opción: {e}")
             time.sleep(1)
             return ""
-        
 
 
 
@@ -177,3 +159,32 @@ class MoodleTest:
     
     def download_image(self, url: str):
         pass
+
+
+    # print(f"Pregunta: {question.question}")
+
+# try:
+#     img_element = web_element.find_element(By.CLASS_NAME, "img-fluid")
+#     img_src = img_element.get_attribute("src")
+#     question.img_source_question.append(img_src)
+#     print(f"Imagen encontrada en la pregunta: {img_src}")
+#     # Extraer cookies de la sesión Selenium
+#     cookies = self.driver.get_cookies()
+#     s = requests.Session()
+#     for cookie in cookies:
+#         s.cookies.set(cookie['name'], cookie['value'])
+
+#     # Descargar la imagen usando la sesión autenticada
+#     url = "https://aulanivelacion.unemi.edu.ec/pluginfile.php/227151/question/questiontext/510815/3/733925/Captura%20de%20pantalla%202024-04-16%20a%20la%28s%29%204.59.28%E2%80%AFp.%C2%A0m..png"
+#     resp = s.get(url)
+
+#     if resp.status_code == 200:
+#         img_bytes = resp.content
+#         img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+#         print("✅ Imagen en Base64 lista:")
+#         print(img_b64[:200], "...")  # solo mostramos un pedazo
+#     else:
+#         print("⚠️ Error al obtener la imagen:", resp.status_code)
+# except Exception as e:
+#     self.logger.info("No se encontró imagen en la pregunta.")
+    
