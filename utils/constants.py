@@ -22,6 +22,8 @@ class Constants:
     questionTypeKey = "type"
     imgSourceQuestionKey = "img_source_question"
     imgSourceOptionsKey = "img_source_options"
+    answersOptionsKey = "answers_options"
+    answersTextKey = "answers_text"
    
 
 

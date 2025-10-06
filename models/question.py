@@ -14,6 +14,7 @@ class Question:
         self.question = ""
         self.options = []
         self.answers = []
+        self.answers_text = []
         self.img_source_question = []
         self.img_source_options = []
         # self.learning_module_id = ObjectId()
@@ -26,6 +27,7 @@ class Question:
             Constants.questionTypeKey: self.type,
             Constants.imgSourceQuestionKey: self.img_source_question,
             Constants.imgSourceOptionsKey: self.img_source_options,
+            Constants.answersTextKey: self.answers_text
             # Constants.learningModuleIdKey: self.learning_module_id if isinstance(self.learning_module_id, ObjectId) else ObjectId(self.learning_module_id)
         }
     
@@ -37,7 +39,8 @@ class Question:
             f"  options={self.options},\n"
             f"  answers={self.answers},\n"
             f"  img_source_question={self.img_source_question},\n"
-            f"  img_source_options={self.img_source_options}\n"
+            f"  img_source_options={self.img_source_options},\n"
+            f"  answers_text={self.answers_text}\n"
             f")"
         )
     
