@@ -74,7 +74,6 @@ class MoodleTest:
             try:
                 list_questions_to_save = []
                 info_box = self.functions.find_element_ref("rui-summary-table")
-                time.sleep(2)
             except Exception as e:
             
                 for question in questions:

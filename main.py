@@ -7,7 +7,7 @@ from resources.multiple_users_handler import MultipleUsersHandler
 def main():
 
 
-    users_handler = MultipleUsersHandler(1, "errores.log")
+    users_handler = MultipleUsersHandler(2, "errores.log")
     users_handler.run()
     #class="input question-input question-input-is-active
 
