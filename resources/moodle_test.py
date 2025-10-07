@@ -63,7 +63,7 @@ class MoodleTest:
                 #     self.logger.info("Pregunta de emparejamiento detectada, no implementada aún.")          
                 #     self.do_ddwtos_question(questions[0])
                 elif "match" in class_info:
-                    self.do_match_question(questions[0])
+                    self.do_match_question(questions[0])                    
 
             except Exception as e:
                 self.logger.error(f"Error al procesar la pregunta:{e}")
@@ -71,7 +71,35 @@ class MoodleTest:
         else:
             #Caso raro, varias preguntas en la página
             self.logger.info("Se encontró varias preguntas en la página.")
-            time.sleep(5)
+            try:
+                list_questions_to_save = []
+                info_box = self.functions.find_element_ref("rui-summary-table")
+                time.sleep(2)
+            except Exception as e:
+            
+                for question in questions:
+                    list_questions_to_save:list[Question] = []
+                    try:
+                        class_info = question.get_attribute("class")
+                        if "multichoice" in class_info:
+                            self.do_multichoice_question2(question,list_questions_to_save)
+                        elif "match" in class_info:
+                            self.do_match_question2(question,list_questions_to_save)                    
+
+                    except Exception as e:
+                        self.logger.error(f"Error al procesar la pregunta:{e}")
+                    time.sleep(2)
+
+            try:
+                table_responsive = self.functions.find_element_ref("table-responsive")
+                if len(list_questions_to_save) > 0:
+                        for q in list_questions_to_save:
+                            print(q)
+                            # self.db.insert_question(self.course_info,q.to_dict())
+            except Exception as e:
+                pass
+
+            
 
     def do_ddwtos_question(self, web_element: WebElement):
         question = web_element.find_element(By.CLASS_NAME, "qtext")
@@ -157,7 +185,108 @@ class MoodleTest:
 
         time.sleep(1)  # Pausa para inspeccionar
 
-        
+    def do_multichoice_question2(self, web_element: WebElement, list_questions_to_save: list[Question]):  
+        question = Question()
+        question.question = web_element.find_element(By.CLASS_NAME, "qtext").text
+        question.type = "multichoice"
+        flag_answer_question = False
+
+        if question.question != "":               
+            db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
+            
+            if db_question != None:
+                flag_answer_question = True      
+            
+
+            answer_block = web_element.find_element(By.CLASS_NAME, "answer")
+            options = answer_block.find_elements(By.CSS_SELECTOR, "div[class^='r']")
+            # print(f"Número de opciones encontradas: {len(options)}")
+            
+            for option in options:
+                #input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
+                # input_element.click() #Si vale para seleccionar la respuesta
+                option_text = self.get_text_from_option_element(option, "input[type='radio']")
+                question.options.append(option_text)
+                if flag_answer_question:
+                    if option_text == db_question['answers'][0]:
+                        input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
+                        input_element.click()
+                        flag_answer_question = False 
+
+            captured_answer = ""
+            try:  
+                answer_text = self.get_text_from_option_element(web_element, "input[type='radio']:checked")
+                if answer_text:
+                    captured_answer = answer_text 
+            except Exception as e:
+                pass
+            
+            if captured_answer != "":
+                question.answers.append(captured_answer)        
+                list_questions_to_save.append(question)
+    
+    def do_match_question2(self, web_element: WebElement,list_questions_to_save: list[Question]):
+        question = Question()
+        question.question = web_element.find_element(By.CLASS_NAME, "qtext").text
+        question.type = "match"
+        flag_answer_question = False
+
+        # selects_elements = web_element.find_elements(By.CSS_SELECTOR, "td.control select")
+        list_selects_select: list[Select] = []
+
+
+        #     # select.select_by_index(1)  # Seleccionar la primera opción válida
+        if question.question != "":
+            db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
+            
+            if db_question != None:
+                flag_answer_question = True
+                
+            table_rows = web_element.find_elements(By.CSS_SELECTOR, "table.answer tr")
+            
+            for i, fila in enumerate(table_rows, start=1):
+                texto_pregunta = fila.find_element(By.CSS_SELECTOR, "td.text").text.strip()
+                question.answers_text.append(texto_pregunta)
+                # print(f"Fila {i} - Pregunta: '{texto_pregunta}'")
+                
+                select_element = fila.find_element(By.CSS_SELECTOR, "td.control select")
+                select = Select(select_element)
+                list_selects_select.append(select)
+
+                options = [opt.text.strip() for opt in select.options if opt.get_attribute("value") != "0"]
+                question.options.append(options)
+                # print(f"Fila {i} - Opciones: {options}")
+                
+                if flag_answer_question:
+                    # select.select_by_value(db_question['answers'][i-1])
+                    select.select_by_index(options.index(db_question['answers'][i-1])+1)  # +1 porque el índice 0 es "Eleg
+            
+
+            
+            list_answer_text = []
+            list_captured_answers = []
+            try:
+                for s in list_selects_select:
+                    selected_option = s.first_selected_option.text.strip()
+                    if "Elegir" in selected_option :
+                        continue
+                    list_answer_text.append(selected_option)
+                
+                if len(list_answer_text) == len(list_selects_select):
+                    list_captured_answers = list_answer_text
+
+            except Exception as e:
+                pass
+            
+
+
+            if len(list_captured_answers)>0:
+                question.answers = list_captured_answers     
+                list_questions_to_save.append(question)
+            
+            
+                
+
     def do_multichoice_question(self, web_element: WebElement):    
 
         question = Question()

@@ -20,7 +20,7 @@ class MultipleUsersHandler:
 
         # Inicializar MongoDB
         self.mongoDB = MongoDB()
-        # self.mongoDB.generate_pdf()
+        self.mongoDB.generate_pdf()
 
     def print_report(self):
         pass

@@ -99,9 +99,9 @@ class MongoDB:
                 lines.append(current_line)
             return lines
 
-        collection = self.mongodb[Constants.questionsEnglishTestCollection]
+        collection = self.mongodb["PENSAMIENTO COMPUTACIONAL"]
         # Obtener documentos
-        docs = collection.find({}, {"question_type": 1,"question": 1, "answers": 1}).sort("_id")
+        docs = collection.find({}, {"question": 1,"options":1 ,"answers": 1}).sort("_id")
 
         # Crear PDF
         c = canvas.Canvas("preguntas_revisar.pdf", pagesize=letter)
@@ -111,32 +111,46 @@ class MongoDB:
         for doc in docs:
             question = doc.get("question", "").replace("\n", " ").strip()
             answers = ", ".join(doc.get("answers", []))
-            enunciado = doc.get("question_type", "").replace("\n", " ").strip()
+
+            options = doc.get("options", [])
+            if isinstance(options, list):
+                enunciado = "\n".join([f"{chr(97 + i)}. {opt}" for i, opt in enumerate(options)])  # a. b. c. d.
+            else:
+                enunciado = str(options)
+            enunciado = enunciado.replace("\n", " ").strip()
 
             question_lines = wrap_text(f"{question_number}. {question}", c, max_width)
+            enunciado_lines = wrap_text(f"➜ Opciones:\n{enunciado}", c, max_width)
             answer_lines = wrap_text(f"➜ Respuesta: {answers}", c, max_width)
-            enunciado_lines = wrap_text(f"➜ Enunciado: {enunciado}", c, max_width)
 
-            required_space = (len(question_lines) + len(answer_lines)+len(enunciado_lines)) * line_height + 10
+            required_space = (len(question_lines) + len(answer_lines) + len(enunciado_lines)) * line_height + 10
 
             if y - required_space < bottom_margin:
                 c.showPage()
                 y = page_height - top_margin
-            
-            c.setFont("Helvetica", 9)
-            for line in enunciado_lines:
-                c.drawString(left_margin, y, line)
-                y -= line_height
 
             c.setFont("Helvetica-Bold", 8)
             for line in question_lines:
                 c.drawString(left_margin, y, line)
                 y -= line_height
 
+            c.setFont("Helvetica", 9)
+            for line in enunciado_lines:
+                c.drawString(left_margin, y, line)
+                y -= line_height
+
             c.setFont("Helvetica", 8)
             for line in answer_lines:
+                text_width = c.stringWidth(line, "Helvetica", 8)
+                
+                # Dibujar fondo amarillo
+                c.setFillColorRGB(1, 1, 0)  # Amarillo (R, G, B)
+                c.rect(left_margin - 1, y - 2, text_width + 2, line_height, fill=1, stroke=0)
+                
+                # Escribir texto negro encima
+                c.setFillColorRGB(0, 0, 0)
                 c.drawString(left_margin, y, line)
-                y -= line_height            
+                y -= line_height
 
             y -= 10
             question_number += 1
