@@ -16,8 +16,10 @@ import requests
 import base64
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import Select
+from resources.cloudinary_handler import CloudinaryHandler
 
 import time
+
 
 
 class MoodleTest:
@@ -70,35 +72,65 @@ class MoodleTest:
         
         else:
             #Caso raro, varias preguntas en la página
-            self.logger.info("Se encontró varias preguntas en la página.")
-            try:
-                list_questions_to_save = []
-                info_box = self.functions.find_element_ref("rui-summary-table")
-            except Exception as e:
             
-                for question in questions:
-                    list_questions_to_save:list[Question] = []
-                    try:
-                        class_info = question.get_attribute("class")
-                        if "multichoice" in class_info:
-                            self.do_multichoice_question2(question,list_questions_to_save)
-                        elif "match" in class_info:
-                            self.do_match_question2(question,list_questions_to_save)                    
+            # try:
+            #     list_questions_to_save = []
+            #     info_box = self.functions.find_element_ref("rui-summary-table")
+            # except Exception as e:
+            self.logger.info("Se encontró varias preguntas en la página: "+ len(questions).__str__())
+            list_questions_to_save:list[Question] = []
+            for question in questions:                
+                try:
+                    class_info = question.get_attribute("class")
+                    if "multichoice" in class_info:
+                        self.do_multichoice_question2(question,list_questions_to_save)
+                    elif "match" in class_info:
+                        self.do_match_question2(question,list_questions_to_save)                    
 
-                    except Exception as e:
-                        self.logger.error(f"Error al procesar la pregunta:{e}")
-                    time.sleep(2)
+                except Exception as e:
+                    self.logger.error(f"Error al procesar la pregunta:{e}")
+                time.sleep(2)
 
-            try:
-                table_responsive = self.functions.find_element_ref("table-responsive")
+            # try:
+            #     table_responsive = self.functions.find_element_ref("table-responsive")
+            #     if len(list_questions_to_save) > 0:
+            #             for q in list_questions_to_save:
+            #                 print(q)
+            #                 # self.db.insert_question(self.course_info,q.to_dict())
+            # except Exception as e:
+            #     pass
+
+            if self.preguntar_guardar():
+                print("Número de preguntas a guardar: "+ len(list_questions_to_save).__str__())
                 if len(list_questions_to_save) > 0:
-                        for q in list_questions_to_save:
-                            print(q)
-                            # self.db.insert_question(self.course_info,q.to_dict())
-            except Exception as e:
-                pass
-
+                    for q in list_questions_to_save:
+                        print(q)
+                        self.db.insert_question(self.course_info,q.to_dict())
+            self.preguntar_continuar()
             
+    def preguntar_continuar(self):
+        while True:
+            respuesta = input("¿Deseas continuar con la siguientes preguntas? (S/N): ").strip().lower()
+            if respuesta in ("sí", "si", "s","S"):
+                print("Continuando con la siguiente pregunta...")
+                return True
+            elif respuesta in ("no", "n","N"):
+                print("Finalizando el proceso de captura de preguntas.")
+                exit(0)
+            else:
+                print("Respuesta no válida. Por favor, escribe 'S' o 'N'.")
+
+    def preguntar_guardar(self):
+        while True:
+            respuesta = input("¿Deseas guardar las preguntas en la base de datos? (S/N): ").strip().lower()
+            if respuesta in ("sí", "si", "s","S"):
+                print("Guardando preguntas en la base de datos...")
+                return True
+            elif respuesta in ("no", "n","N"):
+                print("No se guardarán las preguntas.")
+                return False
+            else:
+                print("Respuesta no válida. Por favor, escribe 'S' o 'N'.")            
 
     def do_ddwtos_question(self, web_element: WebElement):
         question = web_element.find_element(By.CLASS_NAME, "qtext")
@@ -190,11 +222,19 @@ class MoodleTest:
         question.type = "multichoice"
         flag_answer_question = False
 
+        try:
+            img_element = web_element.find_element(By.CLASS_NAME, "img-fluid")
+            img_src = img_element.get_attribute("src")
+            img_src_global = CloudinaryHandler.upload_image(img_src,self.driver)
+            question.img_source_question.append(img_src_global)
+        except Exception as e:
+            pass
+
         if question.question != "":               
             db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
             
             if db_question != None:
-                flag_answer_question = True      
+                flag_answer_question = False      
             
 
             answer_block = web_element.find_element(By.CLASS_NAME, "answer")
@@ -205,7 +245,10 @@ class MoodleTest:
                 #input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
                 # input_element.click() #Si vale para seleccionar la respuesta
                 option_text = self.get_text_from_option_element(option, "input[type='radio']")
-                question.options.append(option_text)
+                if "http" in option_text:
+                    question.img_source_options.append(option_text)
+                else:    
+                    question.options.append(option_text)
                 if flag_answer_question:
                     if option_text == db_question['answers'][0]:
                         input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
@@ -215,14 +258,20 @@ class MoodleTest:
             captured_answer = ""
             try:  
                 answer_text = self.get_text_from_option_element(web_element, "input[type='radio']:checked")
-                if answer_text:
+                if isinstance(answer_text, int):
+                    captured_answer = question.img_source_options[answer_text]
+                elif answer_text != "":
                     captured_answer = answer_text 
+            
             except Exception as e:
                 pass
             
             if captured_answer != "":
-                question.answers.append(captured_answer)        
+                question.answers.append(captured_answer)
+                #print(question)        
                 list_questions_to_save.append(question)
+            else:
+                print("No se pudo capturar la respuesta seleccionada.")
     
     def do_match_question2(self, web_element: WebElement,list_questions_to_save: list[Question]):
         question = Question()
@@ -283,9 +332,6 @@ class MoodleTest:
                 question.answers = list_captured_answers     
                 list_questions_to_save.append(question)
             
-            
-                
-
     def do_multichoice_question(self, web_element: WebElement):    
 
         question = Question()
@@ -326,6 +372,7 @@ class MoodleTest:
             if captured_answer:
                 question.answers.append(captured_answer)        
                 print(question)
+                print("\n")
                 self.db.insert_question(self.course_info,question.to_dict())
 
     def get_text_from_option_element(self, element_question: WebElement, css_statement:str) -> str:
@@ -333,7 +380,13 @@ class MoodleTest:
         try:
             
             selected_input = element_question.find_element(By.CSS_SELECTOR, css_statement)
-            
+            try:
+                img_element = element_question.find_element(By.CLASS_NAME, "img-fluid")
+                img_src = img_element.get_attribute("src")
+                
+            except Exception as e:
+                pass
+                
             try:
                 label_id = selected_input.get_attribute("aria-labelledby")
                 label_element = element_question.find_element(By.ID, label_id)
@@ -349,8 +402,26 @@ class MoodleTest:
                     # print(option_text)
                     return option_text
                 else:
-                    print("⚠️ La opción no tiene el formato esperado.")
-                    print(option_info)
+                    # print("⚠️ La opción no tiene el formato esperado.")
+                    if "checked" in css_statement:
+                        # print(option_info)
+                        if "a" in option_info:
+                            return 0
+                        elif "b" in option_info:
+                            return 1
+                        elif "c" in option_info:
+                            return 2
+                        elif "d" in option_info:
+                            return 3
+                        elif "e" in option_info:
+                            return 4
+                        else:
+                            return ""
+                    else:
+                        if img_src:
+                            img_src_global = CloudinaryHandler.upload_image(img_src,self.driver)
+                            return img_src_global
+                    
                     return ""
             
             except Exception as e:            

@@ -62,7 +62,7 @@ class MongoDB:
     def get_question(self,collection_name:str,question:str) -> dict:
         collection = self.mongodb[collection_name]
         question_doc = collection.find_one({Constants.questionKey: {"$regex": question}})
-        print(question_doc)
+        # print(question_doc)
         if question_doc:
             return question_doc
         else:
@@ -108,19 +108,26 @@ class MongoDB:
         y = page_height - top_margin
         question_number = 1
 
+        
+        
         for doc in docs:
             question = doc.get("question", "").replace("\n", " ").strip()
             answers = ", ".join(doc.get("answers", []))
+            question_lines = wrap_text(f"{question_number}. {question}", c, max_width)
 
             options = doc.get("options", [])
             if isinstance(options, list):
-                enunciado = "\n".join([f"{chr(97 + i)}. {opt}" for i, opt in enumerate(options)])  # a. b. c. d.
+                enunciado_lines = [f""]
+                for i, opt in enumerate(options):
+                    opcion_line = f"{chr(97 + i)}. {opt}"
+                    opcion_wrapped = wrap_text(opcion_line, c, max_width)
+                    enunciado_lines.extend(opcion_wrapped)
             else:
                 enunciado = str(options)
-            enunciado = enunciado.replace("\n", " ").strip()
+            # enunciado = enunciado.replace("\n", " ").strip()
 
-            question_lines = wrap_text(f"{question_number}. {question}", c, max_width)
-            enunciado_lines = wrap_text(f"➜ Opciones:\n{enunciado}", c, max_width)
+            
+            # enunciado_lines = wrap_text(f"➜ Opciones:\n{enunciado}", c, max_width)
             answer_lines = wrap_text(f"➜ Respuesta: {answers}", c, max_width)
 
             required_space = (len(question_lines) + len(answer_lines) + len(enunciado_lines)) * line_height + 10
