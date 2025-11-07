@@ -89,7 +89,7 @@ class MoodleTest:
 
                 except Exception as e:
                     self.logger.error(f"Error al procesar la pregunta:{e}")
-                time.sleep(2)
+                time.sleep(0.5)
 
             # try:
             #     table_responsive = self.functions.find_element_ref("table-responsive")
@@ -106,6 +106,7 @@ class MoodleTest:
                     for q in list_questions_to_save:
                         print(q)
                         self.db.insert_question(self.course_info,q.to_dict())
+                        time.sleep(0.5)
             self.preguntar_continuar()
             
     def preguntar_continuar(self):
@@ -218,12 +219,13 @@ class MoodleTest:
 
     def do_multichoice_question2(self, web_element: WebElement, list_questions_to_save: list[Question]):  
         question = Question()
-        question.question = web_element.find_element(By.CLASS_NAME, "qtext").text
+        question_element = web_element.find_element(By.CLASS_NAME, "qtext")
+        question.question = question_element.text
         question.type = "multichoice"
         flag_answer_question = False
 
         try:
-            img_element = web_element.find_element(By.CLASS_NAME, "img-fluid")
+            img_element = question_element.find_element(By.XPATH, ".//img")
             img_src = img_element.get_attribute("src")
             img_src_global = CloudinaryHandler.upload_image(img_src,self.driver)
             question.img_source_question.append(img_src_global)
@@ -239,7 +241,7 @@ class MoodleTest:
 
             answer_block = web_element.find_element(By.CLASS_NAME, "answer")
             options = answer_block.find_elements(By.CSS_SELECTOR, "div[class^='r']")
-            # print(f"Número de opciones encontradas: {len(options)}")
+            print(f"Número de opciones encontradas: {len(options)}")
             
             for option in options:
                 #input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
@@ -288,7 +290,7 @@ class MoodleTest:
             db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
             
             if db_question != None:
-                flag_answer_question = True
+                flag_answer_question = False
                 
             table_rows = web_element.find_elements(By.CSS_SELECTOR, "table.answer tr")
             
@@ -381,11 +383,23 @@ class MoodleTest:
             
             selected_input = element_question.find_element(By.CSS_SELECTOR, css_statement)
             try:
-                img_element = element_question.find_element(By.CLASS_NAME, "img-fluid")
+                # img_element = element_question.find_element(By.CLASS_NAME, "img-fluid")
+                # img_src = img_element.get_attribute("src")
+
+                # if not img_src:
+                #     try:
+                #         img_element = selected_input.find_element(By.XPATH, ".//img")
+                #         img_src = img_element.get_attribute("src")
+                #     except:
+                #         print("No se encontró imagen en la opción.")
+                img_element = element_question.find_element(By.XPATH, ".//img")
                 img_src = img_element.get_attribute("src")
+                print(f"Imagen encontrada en la opción: {img_src}")
                 
             except Exception as e:
                 pass
+
+            
                 
             try:
                 label_id = selected_input.get_attribute("aria-labelledby")
@@ -427,7 +441,6 @@ class MoodleTest:
             except Exception as e:            
                 # self.logger.error(f"Error al verificar opción seleccionada: {e}")
                 # self.logger.error(f" O Error al consultar texto de la opción, hay imagenes??:")
-                time.sleep(1)
                 return ""
             
         except Exception as e:
