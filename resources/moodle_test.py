@@ -71,12 +71,7 @@ class MoodleTest:
                 self.logger.error(f"Error al procesar la pregunta:{e}")
         
         else:
-            #Caso raro, varias preguntas en la página
-            
-            # try:
-            #     list_questions_to_save = []
-            #     info_box = self.functions.find_element_ref("rui-summary-table")
-            # except Exception as e:
+
             self.logger.info("Se encontró varias preguntas en la página: "+ len(questions).__str__())
             list_questions_to_save:list[Question] = []
             for question in questions:                
@@ -236,7 +231,7 @@ class MoodleTest:
             db_question = self.db.get_question(self.course_info,re.escape(question.question))  # Verificar si la pregunta ya existe en la base de datos
             
             if db_question != None:
-                flag_answer_question = False      
+                flag_answer_question = True
             
 
             answer_block = web_element.find_element(By.CLASS_NAME, "answer")
@@ -252,10 +247,13 @@ class MoodleTest:
                 else:    
                     question.options.append(option_text)
                 if flag_answer_question:
-                    if option_text == db_question['answers'][0]:
-                        input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
-                        input_element.click()
-                        flag_answer_question = False 
+                    try:
+                        if option_text == db_question['answers'][0]:
+                            input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
+                            input_element.click()
+                            flag_answer_question = False 
+                    except Exception as e:
+                        flag_answer_question = False
 
             captured_answer = ""
             try:  

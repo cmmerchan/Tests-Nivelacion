@@ -5,7 +5,7 @@ class Constants:
     #### MongoDB connection constants
 
     mongodbUrl = "mongodb+srv://carlamerchanm:wNpVisgENON5oze7@altissia.nvkido7.mongodb.net/?retryWrites=true&w=majority&appName=Altissia"
-    dbName = "Nivelacion-U2"
+    dbName = "Nivelacion-U3"
     questionsEnglishTestCollection = ""
 
     maxRetries = 5
