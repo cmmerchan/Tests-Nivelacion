@@ -10,7 +10,7 @@ cloudinary.config(
   api_secret = "OmlSo-CQvDZOxPgj29fm4wGJUR0"
 )
 
-folder_path = "NIVELACION 2025 2S/UNIDAD 2/PCOM"
+folder_path = "NIVELACION 2025 2S/UNIDAD 2/MATEMÁTICAS"
 
 class CloudinaryHandler:
     @staticmethod
