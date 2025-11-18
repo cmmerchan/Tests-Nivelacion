@@ -38,7 +38,8 @@ class MoodleTest:
         while True:
             try:
                 breadcrumb = self.functions.find_all_elements_ref("breadcrumb-item")
-                self.course_info = breadcrumb[2].text.split(',')[0]
+                self.course_info = breadcrumb[2].text.split(',')[1]
+                self.course_info = self.course_info.split('-')[0].strip()
                 print(f"Curso actual: {self.course_info}")
 
             except Exception as e:
@@ -392,7 +393,7 @@ class MoodleTest:
                 #         print("No se encontró imagen en la opción.")
                 img_element = element_question.find_element(By.XPATH, ".//img")
                 img_src = img_element.get_attribute("src")
-                print(f"Imagen encontrada en la opción: {img_src}")
+                # print(f"Imagen encontrada en la opción: {img_src}")
                 
             except Exception as e:
                 pass
