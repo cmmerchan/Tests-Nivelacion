@@ -10,11 +10,11 @@ cloudinary.config(
   api_secret = "OmlSo-CQvDZOxPgj29fm4wGJUR0"
 )
 
-folder_path = "NIVELACION 2025 2S/UNIDAD 2/MATEMÁTICAS"
+folder_path = "NIVELACION 2025 2S/UNIDAD 2/"
 
 class CloudinaryHandler:
     @staticmethod
-    def upload_image(image_path: str, driver:uc.Chrome) -> str:
+    def upload_image(image_path: str, driver:uc.Chrome,materia:str) -> str:
         selenium_cookies = driver.get_cookies()
         session = requests.Session()
 
@@ -29,7 +29,7 @@ class CloudinaryHandler:
 
             response = cloudinary.uploader.upload(
                 img_bytes,
-                folder=folder_path,
+                folder=folder_path+materia,
                 overwrite=True,
                 resource_type="image"
             )
