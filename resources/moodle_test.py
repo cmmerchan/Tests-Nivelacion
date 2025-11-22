@@ -3,6 +3,7 @@ import re
 from db.mongodb import MongoDB
 import undetected_chromedriver as uc
 import logging
+from bs4 import BeautifulSoup
 
 from resources.functions import Functions
 from models.question import Question
@@ -210,7 +211,7 @@ class MoodleTest:
             if len(list_captured_answers)>0:
                 question.answers = list_captured_answers     
                 print(question)   
-                self.db.insert_question(self.course_info,question.to_dict())
+                # self.db.insert_question(self.course_info,question.to_dict())
 
 
         time.sleep(1)  # Pausa para inspeccionar
@@ -218,6 +219,29 @@ class MoodleTest:
     def do_multichoice_question2(self, web_element: WebElement, list_questions_to_save: list[Question]):  
         question = Question()
         question_element = web_element.find_element(By.CLASS_NAME, "qtext")
+        html = question_element.get_attribute("outerHTML")
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Limpia basura MathJax
+        for mj in soup.find_all(class_=["MathJax", "MathJax_Preview", "MJX_Assistive_MathML"]):
+            mj.decompose()
+
+        # Convertir <sup> y <sub> en LaTeX
+        for sup in soup.find_all("sup"):
+            sup.replace_with("^{" + sup.get_text() + "}")
+
+        for sub in soup.find_all("sub"):
+            sub.replace_with("_{" + sub.get_text() + "}")
+
+        # Convertir <script type="math/tex"> (si hay string LaTeX)
+        for script in soup.find_all("script", {"type": lambda t: t and "math/tex" in t}):
+            latex = script.get_text()
+            script.replace_with(" " + latex + " ")
+
+        texto = soup.get_text(" ", strip=True)
+
+        print(texto)
+
         question.question = question_element.text
         question.type = "multichoice"
         flag_answer_question = False
@@ -239,7 +263,7 @@ class MoodleTest:
 
             answer_block = web_element.find_element(By.CLASS_NAME, "answer")
             options = answer_block.find_elements(By.CSS_SELECTOR, "div[class^='r']")
-            print(f"Número de opciones encontradas: {len(options)}")
+            # print(f"Número de opciones encontradas: {len(options)}")
             
             for option in options:
                 #input_element = option.find_element(By.CSS_SELECTOR, "input[type='radio']")
